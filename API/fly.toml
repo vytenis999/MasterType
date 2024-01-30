@@ -1,0 +1,27 @@
+# fly.toml app configuration file generated for mastertype on 2024-01-30T17:43:45+02:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'mastertype'
+primary_region = 'arn'
+
+[build]
+  image = 'vytenis99/mastertype:latest'
+
+[env]
+  ASPNETCORE_URLS="http://+:8080"
+  StripeSettings__PublishableKey="pk_test_51OdiYqFT7E6po53FZ8BZQGdUZ1aF1k7I4rrSGMcqzz76xZCox50qMBVOcMYxB39DeWZe8qZnsQGRVu4x5iS7WMfX00qOUq3ij0"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+[[vm]]
+  cpu_kind = 'shared'
+  cpus = 1
+  memory_mb = 1024

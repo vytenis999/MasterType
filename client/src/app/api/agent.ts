@@ -4,7 +4,7 @@ import { router } from "../router/Routes";
 import { PaginatedResponse } from "../models/pagination";
 import { store } from "../store/configureStore";
 
-axios.defaults.baseURL = 'http://localhost:5000/api/'
+axios.defaults.baseURL = import.meta.env.VITE_API_URL
 axios.defaults.withCredentials = true;
 
 const responseBody = (response: AxiosResponse) => response.data;

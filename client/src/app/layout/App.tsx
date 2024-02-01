@@ -16,11 +16,16 @@ import { fetchCurrentUser } from "../../features/account/accountSlice";
 import { fetchLovedAsync } from "../../features/loved/lovedSlice";
 import Footer from "./Footer";
 import HomePage from "../../features/home/HomePage";
+import { hotjar } from "react-hotjar";
 
 function App() {
   const location = useLocation();
   const dispatch = useAppDispatch();
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    hotjar.initialize(3850108, 6);
+  }, []);
 
   const initApp = useCallback(async () => {
     try {

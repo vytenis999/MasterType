@@ -4,7 +4,7 @@ using API.Services;
 
 namespace API.Extensions
 {
-    public static class ApplicationServicesExtension
+    public static class ApplicationServicesExtensions
     {
         public static IServiceCollection AddApplicationServices(this IServiceCollection services)
         {

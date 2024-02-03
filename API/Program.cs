@@ -73,25 +73,9 @@ builder.Services.AddDbContext<StoreContext>(opt =>
     opt.UseNpgsql(connString);
 });
 builder.Services.AddCors();
-builder.Services.AddIdentityCore<User>(opt =>
-{
-    opt.User.RequireUniqueEmail = true;
-})
-    .AddRoles<Role>()
-    .AddEntityFrameworkStores<StoreContext>();
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(opt =>
-    {
-        opt.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = false,
-            ValidateAudience = false,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWTSettings:TokenKey"]))
-        };
-    });
-builder.Services.AddAuthorization();
+
+builder.Services.AddIdentityServices(builder.Configuration);
+
 builder.Services.AddApplicationServices();
 
 var app = builder.Build();

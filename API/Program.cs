@@ -17,34 +17,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    var jwtSecurityScheme = new OpenApiSecurityScheme
-    {
-        BearerFormat = "JWT",
-        Name = "Authorization",
-        In = ParameterLocation.Header,
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = JwtBearerDefaults.AuthenticationScheme,
-        Description = "Put Bearer + your token in the box below",
-        Reference = new OpenApiReference
-        {
-            Id = JwtBearerDefaults.AuthenticationScheme,
-            Type = ReferenceType.SecurityScheme,
-        }
-    };
-
-    c.AddSecurityDefinition(jwtSecurityScheme.Reference.Id, jwtSecurityScheme);
-
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement 
-    {
-        {
-            jwtSecurityScheme, Array.Empty<string>()
-        } 
-    });
-});
-
+builder.Services.AddSwaggerDocumentation();
 
 string connString;
 if (builder.Environment.IsDevelopment())

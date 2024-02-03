@@ -1,6 +1,7 @@
 ﻿using API.Data;
 using API.Entities;
 using API.Extensions;
+using API.Interfaces;
 using API.RequestHelpers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -10,23 +11,17 @@ namespace API.Controllers
 {
     public class ProductsController : BaseApiController
     {
-        private readonly StoreContext _context;
+        private readonly IProductRepository _productRepository;
 
-        public ProductsController(StoreContext context)
+        public ProductsController(IProductRepository productRepository)
         {
-            _context = context;
+            _productRepository = productRepository;
         }
 
         [HttpGet]
         public async Task<ActionResult<PagedList<Product>>> GetProducts([FromQuery]ProductParams productParams) 
         {
-            var query = _context.Products
-                .Sort(productParams.OrderBy)
-                .Search(productParams.SearchTerm)
-                .Filter(productParams.Brands, productParams.Types)
-                .AsQueryable();
-
-            var products = await PagedList<Product>.ToPagedList(query, productParams.PageNumber, productParams.PageSize);
+            var products = await _productRepository.GetProducts(productParams);
 
             Response.AddPaginationHeader(products.MetaData);
 
@@ -36,7 +31,7 @@ namespace API.Controllers
         [HttpGet("newestProducts")]
         public async Task<ActionResult<List<Product>>> GetNewestProducts()
         {
-            var products = await _context.Products.OrderByDescending(p => p.Id).Take(6).ToListAsync();
+            var products = await _productRepository.GetNewestProducts();
 
             return products;
         }
@@ -44,7 +39,7 @@ namespace API.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Product>> GetProduct(int id) 
         {
-            var product = await _context.Products.FindAsync(id);
+            var product = await _productRepository.GetProduct(id);
 
             if (product == null) { return NotFound(); }
 
@@ -54,10 +49,9 @@ namespace API.Controllers
         [HttpGet("filters")]
         public async Task<IActionResult> GetFilters()
         {
-            var brands = await _context.Products.Select(p => p.Brand).Distinct().ToListAsync();
-            var types = await _context.Products.Select(p => p.Type).Distinct().ToListAsync();
+            var filters = await _productRepository.GetFilters();
 
-            return Ok(new {brands, types});
+            return Ok(filters);
         }
     }
 }

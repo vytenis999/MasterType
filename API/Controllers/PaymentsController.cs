@@ -1,25 +1,19 @@
-﻿using API.Data;
-using API.DTOs;
-using API.Entities.OrderAggregate;
-using API.Extensions;
-using API.Services;
+﻿using API.DTOs;
+using API.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Stripe;
 
 namespace API.Controllers
 {
     public class PaymentsController : BaseApiController
     {
-        private readonly PaymentService _paymentService;
-        private readonly StoreContext _context;
+        private readonly IPaymentsRepository _paymentsRepository;
         private readonly IConfiguration _config;
 
-        public PaymentsController(PaymentService paymentService, StoreContext context, IConfiguration config)
+        public PaymentsController(IPaymentsRepository paymentsRepository, IConfiguration config)
         {
-            _paymentService = paymentService;
-            _context = context;
+            _paymentsRepository = paymentsRepository;
             _config = config;
         }
 
@@ -27,32 +21,23 @@ namespace API.Controllers
         [HttpPost]
         public async Task<ActionResult<BasketDto>> CreateOrUpdatePaymentIntent()
         {
-            var basket = _context.Baskets
-                .RetrieveBasketWithItems(User.Identity.Name)
-                .FirstOrDefault();
+            var user = User.Identity.Name;
 
-            if (basket == null)
+            var result = await _paymentsRepository.CreateOrUpdatePaymentIntent(user);
+
+            if (result.IsSuccess)
             {
-                return NotFound();
+                return Ok(result.Data);
             }
 
-            var intent = await _paymentService.CreateOrUpdatePaymentIntent(basket);
-
-            if (intent == null) 
+            if (result.ErrorMessage == "Basket not found")
             {
-                return BadRequest(new ProblemDetails { Title = "Problem creating payment intent" });
+                return NotFound(result.ErrorMessage);
             }
-
-            basket.PaymentIntentId = basket.PaymentIntentId ?? intent.Id;
-            basket.ClientSecret = basket.ClientSecret ?? intent.ClientSecret;
-
-            _context.Update(basket);
-
-            var result = await _context.SaveChangesAsync() > 0;
-
-            if (!result) return BadRequest(new ProblemDetails { Title = "Problem updating basket with intent" });
-
-            return basket.MapBasketToDto();
+            else
+            {
+                return BadRequest(result.ErrorMessage);
+            }
         }
 
         [HttpPost("webhook")]
@@ -65,14 +50,9 @@ namespace API.Controllers
 
             var charge = (Charge)stripeEvent.Data.Object;
 
-            var order = await _context.Orders.FirstOrDefaultAsync(x => 
-                x.PaymentIntentId == charge.PaymentIntentId);
+            var result = await _paymentsRepository.StripeWebHook(charge);
 
-            if (charge.Status == "succeeded") order.OrderStatus = OrderStatus.PaymentReceived;
-
-            await _context.SaveChangesAsync();
-
-            return new EmptyResult();
+            return result;
         }
     }
 }

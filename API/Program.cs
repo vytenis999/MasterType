@@ -6,20 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// Add services to the container.
-
-builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddSwaggerDocumentation();
-
-builder.Services.AddDbServices(builder.Configuration, builder.Environment);
-
-builder.Services.AddCors();
-
-builder.Services.AddIdentityServices(builder.Configuration);
-
-builder.Services.AddApplicationServices();
+SetupServices(builder.Services, builder.Configuration, builder.Environment);
 
 var app = builder.Build();
 
@@ -64,3 +51,18 @@ catch (Exception ex)
 }
 
 app.Run();
+
+static void SetupServices(IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
+{
+    services.AddControllers();
+
+    services.AddSwaggerDocumentation();
+
+    services.AddDbServices(configuration, environment);
+
+    services.AddCors();
+
+    services.AddIdentityServices(configuration);
+
+    services.AddApplicationServices();
+}

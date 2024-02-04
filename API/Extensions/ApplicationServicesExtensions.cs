@@ -9,7 +9,9 @@ namespace API.Extensions
         public static IServiceCollection AddApplicationServices(this IServiceCollection services)
         {
             services.AddScoped<IProductRepository, ProductRepository>();
+            services.AddScoped<IPaymentsRepository, PaymentsRepository>();
 
+            //Stripe services
             services.AddScoped<TokenService>();
             services.AddScoped<PaymentService>();
 

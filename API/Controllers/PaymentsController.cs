@@ -29,14 +29,17 @@ namespace API.Controllers
             {
                 return Ok(result.Data);
             }
-
-            if (result.ErrorMessage == "Basket not found")
+            else if (result.IsNotFound)
             {
                 return NotFound(result.ErrorMessage);
             }
-            else
+            else if (result.IsBadRequest)
             {
                 return BadRequest(result.ErrorMessage);
+            }
+            else
+            {
+                return BadRequest();
             }
         }
 

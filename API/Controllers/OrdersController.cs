@@ -47,14 +47,17 @@ namespace API.Controllers
             {
                 return CreatedAtRoute("GetOrder", new { id = result.Data }, result.Data);
             }
-
-            if (result.ErrorMessage == "Could not locate basket")
+            else if (result.IsNotFound)
             {
                 return NotFound(result.ErrorMessage);
             }
-            else
+            else if (result.IsBadRequest)
             {
                 return BadRequest(result.ErrorMessage);
+            }
+            else
+            {
+                return BadRequest();
             }
         }
     }

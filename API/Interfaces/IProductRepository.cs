@@ -1,7 +1,6 @@
 ﻿using API.DTOs;
 using API.Entities;
 using API.RequestHelpers;
-using Microsoft.EntityFrameworkCore;
 
 namespace API.Interfaces
 {

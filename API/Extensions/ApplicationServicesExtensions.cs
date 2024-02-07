@@ -12,6 +12,7 @@ namespace API.Extensions
             services.AddScoped<IPaymentsRepository, PaymentsRepository>();
             services.AddScoped<IOrderRepository, OrderRepository>();
             services.AddScoped<ILovedRepository, LovedRepository>();
+            services.AddScoped<IBasketRepository, BasketRepository>();
 
             //Stripe services
             services.AddScoped<TokenService>();

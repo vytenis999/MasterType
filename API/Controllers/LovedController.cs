@@ -24,7 +24,7 @@ namespace API.Controllers
                 return null;
             }
 
-            var result = await _lovedRepository.GetLovedDto(buyerId);
+            var result = await _lovedRepository.GetLoved (buyerId);
 
             if (result.IsSuccess)
             {

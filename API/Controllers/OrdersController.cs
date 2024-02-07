@@ -3,9 +3,11 @@ using API.DTOs;
 using API.Entities;
 using API.Entities.OrderAggregate;
 using API.Extensions;
+using API.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Stripe.Climate;
 
 namespace API.Controllers
 {
@@ -13,97 +15,47 @@ namespace API.Controllers
     public class OrdersController : BaseApiController
     {
         private readonly StoreContext _context;
+        private readonly IOrderRepository _orderRepository;
 
-        public OrdersController(StoreContext context)
+        public OrdersController(StoreContext context, IOrderRepository orderRepository)
         {
             _context = context;
+            _orderRepository = orderRepository;
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<OrderDto>>> GetOrders(){
-            return await _context.Orders
-                .ProjectOrderToOrderDto()
-                .Where(x => x.BuyerId == User.Identity.Name)
-                .ToListAsync();
+        public async Task<ActionResult<List<OrderDto>>> GetOrders()
+        {
+            var user = User.Identity.Name;
+            return await _orderRepository.GetOrders(user);
         }
 
         [HttpGet("{id}", Name = "GetOrder")]
         public async Task<ActionResult<OrderDto>> GetOrder(int id)
         {
-            return await _context.Orders
-                .ProjectOrderToOrderDto()
-                .Where(x => x.BuyerId == User.Identity.Name && x.Id == id)
-                .FirstOrDefaultAsync();
+            var user = User.Identity.Name;
+            return await _orderRepository.GetOrder(id,user);
         }
 
         [HttpPost]
         public async Task<ActionResult<int>> CreateOrder(CreateOrderDto orderDto)
         {
-            var basket = await _context.Baskets
-                .RetrieveBasketWithItems(User.Identity.Name)
-                .FirstOrDefaultAsync();
+            var user = User.Identity.Name;
+            var result = await _orderRepository.CreateOrder(orderDto, user);
 
-            if (basket == null) return BadRequest(new ProblemDetails { Title = "Could not locate basket" });
-
-            var items = new List<OrderItem>();
-
-            foreach (var item in basket.Items)
+            if (result.IsSuccess)
             {
-                var productItem = await _context.Products.FindAsync(item.ProductId);
-                var itemOrdered = new ProductItemOrdered
-                {
-                    ProductId = productItem.Id,
-                    Name = productItem.Name,
-                    PictureUrl = productItem.PictureUrl,
-                };
-                var orderItem = new OrderItem
-                {
-                    ItemOrdered = itemOrdered,
-                    Price = productItem.Price,
-                    Quantity = item.Quantity
-                };
-                items.Add(orderItem);
-                productItem.QuantityInStock -= item.Quantity;
+                return CreatedAtRoute("GetOrder", new { id = result.Data }, result.Data);
             }
 
-            var subtotal = items.Sum(item => item.Price * item.Quantity);
-            var deliveryFee = subtotal > 1000 ? 0 : 500;
-
-            var order = new Order
+            if (result.ErrorMessage == "Could not locate basket")
             {
-                OrderItems = items,
-                BuyerId = User.Identity.Name,
-                ShippingAddress = orderDto.ShippingAddress,
-                Subtotal = subtotal,
-                DeliveryFee = deliveryFee,
-                PaymentIntentId = basket.PaymentIntentId,
-            };
-
-            _context.Orders.Add(order);
-            _context.Baskets.Remove(basket);
-
-            if(orderDto.SaveAddress)
-            {
-                var user = await _context.Users
-                    .Include(a => a.Address)
-                    .FirstOrDefaultAsync(x => x.UserName == User.Identity.Name);
-
-                var address = new UserAddress
-                {
-                    FullName = orderDto.ShippingAddress.FullName,
-                    Address1 = orderDto.ShippingAddress.Address1,
-                    City = orderDto.ShippingAddress.City,
-                    Zip = orderDto.ShippingAddress.Zip,
-                    Country = orderDto.ShippingAddress.Country,
-                };
-                user.Address = address;
+                return NotFound(result.ErrorMessage);
             }
-
-            var result = await _context.SaveChangesAsync() > 0;
-
-            if (result) return CreatedAtRoute("GetOrder", new { id = order.Id }, order.Id);
-
-            return BadRequest("Problem creating order");
+            else
+            {
+                return BadRequest(result.ErrorMessage);
+            }
         }
     }
 }

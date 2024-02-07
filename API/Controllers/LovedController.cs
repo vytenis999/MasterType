@@ -2,6 +2,7 @@
 using API.DTOs;
 using API.Entities;
 using API.Extensions;
+using API.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,78 +11,47 @@ namespace API.Controllers
     public class LovedController : BaseApiController
     {
         private readonly StoreContext _context;
+        private readonly ILovedRepository _lovedRepository;
 
-        public LovedController(StoreContext context)
+        public LovedController(StoreContext context, ILovedRepository lovedRepository)
         {
             _context = context;
+            _lovedRepository = lovedRepository;
         }
 
         [HttpGet(Name = "GetLoved")]
         public async Task<ActionResult<LovedDto>> GetLoved()
         {
-            var loved = await RetrieveLoved(GetBuyerId());
+            var buyerId = User.Identity?.Name ?? Request.Cookies["buyerId"];
 
-            if (loved == null) return NotFound();
-
-            return loved.MapLovedToDto();
-        }
-
-        [HttpPost]
-        public async Task<ActionResult<LovedDto>> AddItemToLoved(int productId)
-        {
-            var loved = await RetrieveLoved(GetBuyerId());
-
-            if (loved == null) loved = CreateLoved();
-
-            var product = await _context.Products.FindAsync(productId);
-
-            if (product == null) return BadRequest(new ProblemDetails { Title = "Product Not Found" });
-
-            loved.AddItem(product);
-
-            var result = await _context.SaveChangesAsync() > 0;
-
-            if (result) return CreatedAtRoute("GetLoved", loved.MapLovedToDto());
-
-            return BadRequest(new ProblemDetails { Title = "Problem saving item to loved" });
-        }
-
-        [HttpDelete]
-        public async Task<ActionResult> RemoveLovedItem(int productId)
-        {
-            var loved = await RetrieveLoved(GetBuyerId());
-
-            if (loved == null) return NotFound();
-
-            loved.RemoveItem(productId);
-
-            var result = await _context.SaveChangesAsync() > 0;
-
-            if (result) return Ok();
-
-            return BadRequest(new ProblemDetails { Title = "Problem removing loved item" });
-        }
-
-        private async Task<Loved> RetrieveLoved(string buyerId)
-        {
             if (string.IsNullOrEmpty(buyerId))
             {
                 Response.Cookies.Delete("buyerId");
                 return null;
             }
 
-            return await _context.Loveds
-                .Include(i => i.Items)
-                .ThenInclude(p => p.Product)
-                .FirstOrDefaultAsync(x => x.BuyerId == buyerId);
+            var result = await _lovedRepository.GetLovedDto(buyerId);
+
+            if (result.IsSuccess)
+            {
+                return result.Data;
+            }
+            else if (result.IsNotFound)
+            {
+                return NotFound(result.ErrorMessage);
+            }
+            else if (result.IsBadRequest)
+            {
+                return BadRequest(result.ErrorMessage);
+            }
+            else
+            {
+                return BadRequest(new ProblemDetails { Title = "Problem getting item" });
+            }
         }
 
-        private string GetBuyerId()
-        {
-            return User.Identity?.Name ?? Request.Cookies["buyerId"];
-        }
-
-        private Loved CreateLoved()
+        [HttpPost]
+        public async Task<ActionResult<LovedDto>> AddItemToLoved(int productId)
         {
             var buyerId = User.Identity?.Name;
             if (string.IsNullOrEmpty(buyerId))
@@ -95,9 +65,55 @@ namespace API.Controllers
                 }
             }
 
-            var loved = new Loved { BuyerId = buyerId };
-            _context.Loveds.Add(loved);
-            return loved;
+            var result = await _lovedRepository.AddItemToLoved(buyerId, productId);
+
+            if (result.IsSuccess)
+            {
+                return CreatedAtRoute("GetLoved", result.Data);
+            }
+            else if (result.IsNotFound)
+            {
+                return NotFound(result.ErrorMessage);
+            }
+            else if (result.IsBadRequest)
+            {
+                return BadRequest(result.ErrorMessage);
+            }
+            else
+            {
+                return BadRequest(new ProblemDetails { Title = "Problem saving item to loved" });
+            }
+        }
+
+        [HttpDelete]
+        public async Task<ActionResult> RemoveLovedItem(int productId)
+        {
+            var buyerId = User.Identity?.Name ?? Request.Cookies["buyerId"];
+
+            if (string.IsNullOrEmpty(buyerId))
+            {
+                Response.Cookies.Delete("buyerId");
+                return null;
+            }
+
+            var result = await _lovedRepository.RemoveLovedItem(buyerId, productId);
+
+            if (result.IsSuccess)
+            {
+                return Ok(result.SuccessMessage);
+            }
+            else if (result.IsNotFound)
+            {
+                return NotFound(result.ErrorMessage);
+            }
+            else if (result.IsBadRequest)
+            {
+                return BadRequest(result.ErrorMessage);
+            }
+            else
+            {
+                return BadRequest(new ProblemDetails { Title = "Problem removing loved item" });
+            }
         }
     }
 }

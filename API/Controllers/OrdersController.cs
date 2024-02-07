@@ -1,25 +1,17 @@
-﻿using API.Data;
-using API.DTOs;
-using API.Entities;
-using API.Entities.OrderAggregate;
-using API.Extensions;
+﻿using API.DTOs;
 using API.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Stripe.Climate;
 
 namespace API.Controllers
 {
     [Authorize]
     public class OrdersController : BaseApiController
     {
-        private readonly StoreContext _context;
         private readonly IOrderRepository _orderRepository;
 
-        public OrdersController(StoreContext context, IOrderRepository orderRepository)
+        public OrdersController(IOrderRepository orderRepository)
         {
-            _context = context;
             _orderRepository = orderRepository;
         }
 

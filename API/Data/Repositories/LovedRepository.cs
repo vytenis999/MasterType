@@ -16,9 +16,9 @@ namespace API.Data.Repositories
             _context = context;
         }
 
-        public async Task<ResultDto<LovedDto>> GetLovedDto(string buyerId)
+        public async Task<ResultDto<LovedDto>> GetLoved(string buyerId)
         {
-            var loved = await GetLoved(buyerId);
+            var loved = await RetrieveLoved(buyerId);
 
             if (loved == null) return ResultDto<LovedDto>.NotFound("Loved items not found");
 
@@ -27,7 +27,7 @@ namespace API.Data.Repositories
 
         public async Task<ResultDto<LovedDto>> AddItemToLoved(string buyerId, int productId)
         {
-            var loved = await GetLoved(buyerId);
+            var loved = await RetrieveLoved(buyerId);
 
             if (loved == null) 
             {
@@ -50,7 +50,7 @@ namespace API.Data.Repositories
 
         public async Task<ResultDto> RemoveLovedItem(string buyerId, int productId)
         {
-            var loved = await GetLoved(buyerId);
+            var loved = await RetrieveLoved(buyerId);
 
             if (loved == null) return ResultDto.NotFound("Loved items not found");
 
@@ -63,7 +63,7 @@ namespace API.Data.Repositories
             return ResultDto.BadRequest("Problem removing loved item");
         }
 
-        private async Task<Loved> GetLoved(string buyerId)
+        private async Task<Loved> RetrieveLoved(string buyerId)
         {
             return await _context.Loveds
                     .Include(i => i.Items)

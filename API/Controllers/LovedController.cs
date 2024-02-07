@@ -1,21 +1,15 @@
-﻿using API.Data;
-using API.DTOs;
-using API.Entities;
-using API.Extensions;
+﻿using API.DTOs;
 using API.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace API.Controllers
 {
     public class LovedController : BaseApiController
     {
-        private readonly StoreContext _context;
         private readonly ILovedRepository _lovedRepository;
 
-        public LovedController(StoreContext context, ILovedRepository lovedRepository)
+        public LovedController(ILovedRepository lovedRepository)
         {
-            _context = context;
             _lovedRepository = lovedRepository;
         }
 
@@ -46,7 +40,7 @@ namespace API.Controllers
             }
             else
             {
-                return BadRequest(new ProblemDetails { Title = "Problem getting item" });
+                return BadRequest(new ProblemDetails { Title = "Problem getting loved list" });
             }
         }
 
@@ -81,7 +75,7 @@ namespace API.Controllers
             }
             else
             {
-                return BadRequest(new ProblemDetails { Title = "Problem saving item to loved" });
+                return BadRequest(new ProblemDetails { Title = "Problem saving item to loved list" });
             }
         }
 
@@ -112,7 +106,7 @@ namespace API.Controllers
             }
             else
             {
-                return BadRequest(new ProblemDetails { Title = "Problem removing loved item" });
+                return BadRequest(new ProblemDetails { Title = "Problem removing loved list item" });
             }
         }
     }

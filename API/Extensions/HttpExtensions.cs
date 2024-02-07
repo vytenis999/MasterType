@@ -1,6 +1,4 @@
-﻿using API.Entities;
-using API.RequestHelpers;
-using System.Runtime.CompilerServices;
+﻿using API.RequestHelpers;
 using System.Text.Json;
 
 namespace API.Extensions
@@ -11,8 +9,8 @@ namespace API.Extensions
         { 
             var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
-            response.Headers.Add("Pagination", JsonSerializer.Serialize(metaData, options));
-            response.Headers.Add("Access-Control-Expose-Headers", "Pagination");
+            response.Headers.Append("Pagination", JsonSerializer.Serialize(metaData, options));
+            response.Headers.Append("Access-Control-Expose-Headers", "Pagination");
 
         }
     }

@@ -5,6 +5,7 @@
         public bool IsSuccess { get; set; } = false;
         public bool IsNotFound { get; set; } = false;
         public bool IsBadRequest { get; set; } = false;
+        public bool IsUnauthorized { get; set; } = false;
         public string ErrorMessage { get; set; }
         public string SuccessMessage { get; set; }
 
@@ -21,6 +22,11 @@
         public static ResultDto BadRequest(string errorMessage)
         {
             return new ResultDto { IsBadRequest = true, ErrorMessage = errorMessage };
+        }
+
+        public static ResultDto Unauthorized()
+        {
+            return new ResultDto { IsBadRequest = true };
         }
     }
 
@@ -41,6 +47,10 @@
         public static new ResultDto<T> BadRequest(string errorMessage)
         {
             return new ResultDto<T> { IsBadRequest = true, ErrorMessage = errorMessage };
+        }
+        public static new ResultDto<T> Unauthorized()
+        {
+            return new ResultDto<T> { IsBadRequest = true };
         }
     }
 }

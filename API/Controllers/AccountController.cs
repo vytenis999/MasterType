@@ -1,7 +1,8 @@
-﻿using API.Data;
+﻿using API.Data.Repositories;
 using API.DTOs;
 using API.Entities;
 using API.Extensions;
+using API.Interfaces;
 using API.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -12,44 +13,49 @@ namespace API.Controllers
 {
     public class AccountController : BaseApiController
     {
-        private readonly UserManager<User> _userManager;
+        private readonly IAccountRepository _accountRepository;
+        private readonly IBasketRepository _basketRepository;
+        private readonly ILovedRepository _lovedRepository;
         private readonly TokenService _tokenService;
-        private readonly StoreContext _context;
 
-        public AccountController(UserManager<User> userManager, TokenService tokenService, StoreContext context)
+        public AccountController(IAccountRepository accountRepository, IBasketRepository basketRepository, ILovedRepository lovedRepository, TokenService tokenService)
         {
-            _userManager = userManager;
+            _accountRepository = accountRepository;
+            _basketRepository = basketRepository;
+            _lovedRepository = lovedRepository;
             _tokenService = tokenService;
-            _context = context;
         }
 
         [HttpPost("login")]
         public async Task<ActionResult<UserDto>> Login(LoginDto loginDto)
         {
-            var user = await _userManager.FindByNameAsync(loginDto.Username);
-            if (user == null || !await _userManager.CheckPasswordAsync(user, loginDto.Password)) 
+            var result = await _accountRepository.Login(loginDto);
+
+            if (result.IsUnauthorized)
+            {
                 return Unauthorized();
+            }
 
-            var userBasket = await RetrieveBasket(loginDto.Username);
-            var anonBasket = await RetrieveBasket(Request.Cookies["buyerId"]);
+            var user = result.Data;
 
-            var userLoved = await RetrieveLoved(loginDto.Username);
-            var anonLoved = await RetrieveLoved(Request.Cookies["buyerId"]);
+            var userBasket = await _basketRepository.RetrieveBasket(loginDto.Username);
+            var anonBasket = await _basketRepository.RetrieveBasket(Request.Cookies["buyerId"]);
+
+            var userLoved = await _lovedRepository.RetrieveLoved(loginDto.Username);
+            var anonLoved = await _lovedRepository.RetrieveLoved(Request.Cookies["buyerId"]);
 
             if (anonBasket != null)
             {
-                if (userBasket != null) _context.Baskets.Remove(userBasket);
-                anonBasket.BuyerId = user.UserName;
+                if (userBasket != null) _basketRepository.RemoveBasket(userBasket);
+                await _basketRepository.TransferBasket(anonBasket, user.UserName);
                 Response.Cookies.Delete("buyerId");
-                await _context.SaveChangesAsync();
             }
 
             if (anonLoved != null)
             {
-                if (userBasket != null) _context.Loveds.Remove(userLoved);
-                anonLoved.BuyerId = user.UserName;
+                if (userBasket != null) _lovedRepository.RemoveLoved(userLoved);
+                await _lovedRepository.TransferLoved(anonLoved, user.UserName);
                 Response.Cookies.Delete("buyerId");
-                await _context.SaveChangesAsync();
             }
 
             return new UserDto
@@ -66,7 +72,7 @@ namespace API.Controllers
         {
             var user = new User { UserName = registerDto.Username, Email = registerDto.Email };
 
-            var result =  await _userManager.CreateAsync(user, registerDto.Password);
+            var result =  await _accountRepository.CreateUser(registerDto, user);
 
             if (!result.Succeeded) 
             {
@@ -78,7 +84,7 @@ namespace API.Controllers
                 return ValidationProblem();
             }
 
-            await _userManager.AddToRoleAsync(user, "Member");
+            await _accountRepository.AddToRoleMember(user);
 
             return StatusCode(201);
         }
@@ -87,10 +93,10 @@ namespace API.Controllers
         [HttpGet("currentUser")]
         public async Task<ActionResult<UserDto>> GetCurrentUser()
         {
-            var user = await _userManager.FindByNameAsync(User.Identity.Name);
+            var user = await _accountRepository.GetUser(User.Identity.Name);
 
-            var userBasket = await RetrieveBasket(User.Identity.Name);
-            var userLoved = await RetrieveLoved(User.Identity.Name);
+            var userBasket = await _basketRepository.RetrieveBasket(User.Identity.Name);
+            var userLoved = await _lovedRepository.RetrieveLoved(User.Identity.Name);
 
             return new UserDto
             {
@@ -105,38 +111,10 @@ namespace API.Controllers
         [HttpGet("savedAddress")]
         public async Task<ActionResult<UserAddress>> GetSavedAddress()
         {
-            return await _userManager.Users
-                .Where(x => x.UserName == User.Identity.Name)
-                .Select(user => user.Address)
-                .FirstOrDefaultAsync();
+            var userName = User.Identity.Name;
+
+            return await _accountRepository.GetSavedAddress(userName);
         }
 
-        private async Task<Basket> RetrieveBasket(string buyerId)
-        {
-            if (string.IsNullOrEmpty(buyerId))
-            {
-                Response.Cookies.Delete("buyerId");
-                return null;
-            }
-
-            return await _context.Baskets
-                .Include(i => i.Items)
-                .ThenInclude(p => p.Product)
-                .FirstOrDefaultAsync(x => x.BuyerId == buyerId);
-        }
-
-        private async Task<Loved> RetrieveLoved(string buyerId)
-        {
-            if (string.IsNullOrEmpty(buyerId))
-            {
-                Response.Cookies.Delete("buyerId");
-                return null;
-            }
-
-            return await _context.Loveds
-                .Include(i => i.Items)
-                .ThenInclude(p => p.Product)
-                .FirstOrDefaultAsync(x => x.BuyerId == buyerId);
-        }
     }
 }

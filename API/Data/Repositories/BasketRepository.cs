@@ -61,12 +61,29 @@ namespace API.Data.Repositories
 
             return ResultDto.BadRequest("Problem removing basket item");
         }
-        private async Task<Basket> RetrieveBasket(string buyerId)
+        public async Task<Basket> RetrieveBasket(string buyerId)
         {
+            if (string.IsNullOrEmpty(buyerId))
+            {
+                return null;
+            }
+
             return await _context.Baskets
                 .Include(i => i.Items)
                 .ThenInclude(p => p.Product)
                 .FirstOrDefaultAsync(x => x.BuyerId == buyerId);
+        }
+
+        public void RemoveBasket(Basket userBasket)
+        {
+            _context.Baskets.Remove(userBasket);
+        }
+
+        public async Task TransferBasket(Basket userBasket, string userName)
+        {
+            userBasket.BuyerId = userName;
+
+            await _context.SaveChangesAsync();
         }
     }
 }

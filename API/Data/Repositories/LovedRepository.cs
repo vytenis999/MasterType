@@ -62,12 +62,29 @@ namespace API.Data.Repositories
             return ResultDto.BadRequest("Problem removing loved item");
         }
 
-        private async Task<Loved> RetrieveLoved(string buyerId)
+        public async Task<Loved> RetrieveLoved(string buyerId)
         {
+            if (string.IsNullOrEmpty(buyerId))
+            {
+                return null;
+            }
+
             return await _context.Loveds
-                    .Include(i => i.Items)
-                    .ThenInclude(p => p.Product)
-                    .FirstOrDefaultAsync(x => x.BuyerId == buyerId);
+                .Include(i => i.Items)
+                .ThenInclude(p => p.Product)
+                .FirstOrDefaultAsync(x => x.BuyerId == buyerId);
+        }
+
+        public void RemoveLoved(Loved userLoved)
+        {
+            _context.Loveds.Remove(userLoved);
+        }
+
+        public async Task TransferLoved(Loved userLoved, string userName)
+        {
+            userLoved.BuyerId = userName;
+
+            await _context.SaveChangesAsync();
         }
     }
 }

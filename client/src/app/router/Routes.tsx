@@ -14,6 +14,7 @@ import Orders from "../../features/orders/Orders";
 import OrderDetails from "../../features/orders/OrderDetails";
 import LovedPage from "../../features/loved/LovedPage";
 import CheckoutWrapper from "../../features/checkout/CheckoutWrapper";
+import Inventory from "../../features/admin/Inventory";
 
 export const router = createBrowserRouter([
   {
@@ -27,6 +28,10 @@ export const router = createBrowserRouter([
           { path: "orders", element: <Orders /> },
           { path: "orders/:id", element: <OrderDetails /> },
         ],
+      },
+      {
+        element: <RequireAuth roles={["Admin"]} />,
+        children: [{ path: "inventory", element: <Inventory /> }],
       },
       { path: "catalog", element: <Catalog /> },
       { path: "catalog/:id", element: <ProductDetails /> },

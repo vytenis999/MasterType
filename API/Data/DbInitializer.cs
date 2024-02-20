@@ -158,12 +158,6 @@ namespace API.Data
 
             context.Products.AddRange(products);    
 
-            /*
-            foreach (var product in products)
-            {
-                context.Products.Add(product);
-            }*/
-
             context.SaveChanges();
         }
     }

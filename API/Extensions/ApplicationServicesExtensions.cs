@@ -1,5 +1,6 @@
 ﻿using API.Data.Repositories;
 using API.Interfaces;
+using API.RequestHelpers;
 using API.Services;
 
 namespace API.Extensions
@@ -18,6 +19,12 @@ namespace API.Extensions
             //Stripe services
             services.AddScoped<TokenService>();
             services.AddScoped<PaymentService>();
+
+            //Automapper services
+            services.AddAutoMapper(typeof(MappingProfiles).Assembly);
+
+            //Cloudinary
+            services.AddScoped<ImageService>();
 
             return services;
         }

@@ -1,6 +1,6 @@
 import { IconButton, Menu, MenuItem } from "@mui/material";
 import React from "react";
-import { useAppDispatch } from "../store/configureStore";
+import { useAppDispatch, useAppSelector } from "../store/configureStore";
 import { signOut } from "../../features/account/accountSlice";
 import { clearBasket } from "../../features/basket/basketSlice";
 import { Link } from "react-router-dom";
@@ -17,6 +17,7 @@ export default function SignedInMenu() {
   const handleClose = () => {
     setAnchorEl(null);
   };
+  const { user } = useAppSelector((state) => state.account);
 
   return (
     <>
@@ -28,6 +29,11 @@ export default function SignedInMenu() {
         <MenuItem component={Link} to="/orders">
           My orders
         </MenuItem>
+        {user?.roles?.includes("Admin") && (
+          <MenuItem component={Link} to={"/inventory"}>
+            Inventory
+          </MenuItem>
+        )}
         <MenuItem
           onClick={() => {
             dispatch(signOut());
